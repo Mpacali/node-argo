@@ -36,3 +36,11 @@ jobs:
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+        docker tag node-argo:latest ghcr.io/Mpacali/node-argo:latest
+
+        docker push ghcr.io/Mpacali/node-argo:latest
+
+        docker pull ghcr.io/Mpacali/node-argo:latest
+
+        
+
