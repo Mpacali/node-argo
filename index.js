@@ -27,7 +27,7 @@ const NAME = process.env.NAME || 'Vls';                     // 节点名称
 // 警告：自动获取最新版本号可能下载到不稳定版本。
 // 建议：如果需要高度稳定，可以手动指定一个您确认稳定的版本号。
 let SINGBOX_VERSION = "1.8.0"; // 默认版本，如果GitHub API获取失败则使用此版本
-let CLOUDFLARED_VERSION = "2024.5.1"; // 默认版本，如果GitHub API获取失败则使用此版本
+let CLOUDFLARED_VERSION = "2025.5.1"; // 默认版本，如果GitHub API获取失败则使用此版本
 
 // 函数来获取最新的 GitHub Release 版本
 async function getLatestGitHubRelease(repoOwner, repoName) {
