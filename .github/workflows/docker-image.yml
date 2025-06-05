@@ -40,7 +40,7 @@ jobs:
 
         docker push ghcr.io/mpacali/node-argo:latest
 
-        docker pull ghcr.io/mpacali/node-argo:latest
+
 
         
 
