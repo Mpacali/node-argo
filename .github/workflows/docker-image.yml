@@ -40,9 +40,9 @@ jobs:
     # 7. 推送 Docker 镜像
     - name: Push Docker image
       run: |
-        docker tag node-argo:latest ahpamer/node-argo:latest
+        docker tag node-argo:latest pasceger/node-argo:latest
 
-        docker push ahpamer/node-argo:latest
+        docker push pasceger/node-argo:latest
 
 
 
