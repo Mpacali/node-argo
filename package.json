@@ -1,24 +1,20 @@
 {
-  "name": "nodejs-argo-singbox",
-  "version": "1.0.0",
-  "description": "Node.js application for deploying Vless/Vmess/Trojan proxy with Cloudflare Argo Tunnel and Sing-box.",
+  "name": "nodejs-argo",
+  "version": "8.8.8",
+  "description": "Thsi is a node project",
   "main": "index.js",
+  "author": "pmaa",
+  "repository": "https://github.com/Mpacali/nodejs-argo",
+  "license": "MIT",
+  "private": false,
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [
-    "nodejs",
-    "argo-tunnel",
-    "singbox",
-    "vless",
-    "vmess",
-    "trojan",
-    "proxy"
-  ],
-  "author": "pakc",
-  "license": "MIT",
   "dependencies": {
-    "axios": "^1.x.x",   
-    "express": "^4.x.x"
+    "axios": "latest",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14"
   }
 }
