@@ -23,17 +23,17 @@ const CFIP = process.env.CFIP || 'www.visa.com.sg';         // 节点优选域�
 const CFPORT = process.env.CFPORT || 443;                   // 节点优选域名或优选ip对应的端口
 const NAME = process.env.NAME || 'Vls';                     // 节点名称
 
-// --- 自动获取最新版本号（需要联网获取，或者您手动指定一个版本） ---
+// --- 动态获取或默认最新版本号 ---
 // 警告：自动获取最新版本号可能下载到不稳定版本。
-// 建议：手动指定一个您确认稳定的版本号，或者实现更健壮的版本获取和筛选逻辑。
-let SINGBOX_VERSION = "1.8.0"; // 默认版本，最好根据实际情况修改或动态获取
-let CLOUDFLARED_VERSION = "2024.5.1"; // 默认版本，最好根据实际情况修改或动态获取
+// 建议：如果需要高度稳定，可以手动指定一个您确认稳定的版本号。
+let SINGBOX_VERSION = "1.8.0"; // 默认版本，如果GitHub API获取失败则使用此版本
+let CLOUDFLARED_VERSION = "2024.5.1"; // 默认版本，如果GitHub API获取失败则使用此版本
 
 // 函数来获取最新的 GitHub Release 版本
 async function getLatestGitHubRelease(repoOwner, repoName) {
     try {
         const response = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}/releases/latest`);
-        return response.data.tag_name.replace(/^v/, ''); // 移除 'v' 前缀
+        return response.data.tag_name.replace(/^v/, ''); // 移除 'v' 前缀，例如 'v1.0.0' -> '1.0.0'
     } catch (error) {
         console.warn(`无法获取 ${repoOwner}/${repoName} 的最新版本，将使用默认版本。错误: ${error.message}`);
         return null;
@@ -129,7 +129,8 @@ function getSystemArchitecture() {
   }
 }
 
-// --- 下载文件 (无校验和) ---
+// --- 下载文件 (不进行校验和) ---
+// 注意：移除了 checksum 参数和校验逻辑
 async function downloadFile(fileName, fileUrl, callback) {
     const filePath = path.join(FILE_PATH, fileName);
     const writer = fs.createWriteStream(filePath);
@@ -160,6 +161,7 @@ async function downloadFile(fileName, fileUrl, callback) {
 }
 
 // --- 根据系统架构返回对应的文件信息和下载 URL ---
+// 这是您主要想修改的部分！
 function getFilesToDownload(architecture) {
   let filesToDownload = [];
 
@@ -168,17 +170,16 @@ function getFilesToDownload(architecture) {
   const singboxFileName = `sing-box-${SINGBOX_VERSION}-linux-${architecture}.tar.gz`;
   filesToDownload.push({
       fileName: "sing-box.tar.gz", // 先下载为 tar.gz
-      execName: "web", // 解压后可执行文件将命名为 web
+      execName: "web",             // 解压后可执行文件将命名为 web
       fileUrl: `https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/${singboxFileName}`
   });
-
 
   // Cloudflared
   // 假设 cloudflared 的 release 文件名格式为 cloudflared-linux-${ARCH}
   const cloudflaredFileName = `cloudflared-linux-${architecture}`;
   filesToDownload.push({
-      fileName: "bot", // 直接下载为 bot
-      execName: "bot", // 可执行文件命名为 bot
+      fileName: "bot",             // 直接下载为 bot
+      execName: "bot",             // 可执行文件命名为 bot
       fileUrl: `https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/${cloudflaredFileName}`
   });
 
@@ -192,9 +193,11 @@ async function downloadFilesAndRun() {
   // 动态获取最新版本号
   const latestSingboxVersion = await getLatestGitHubRelease('SagerNet', 'sing-box');
   if (latestSingboxVersion) SINGBOX_VERSION = latestSingboxVersion;
+  console.log(`Using Sing-box version: ${SINGBOX_VERSION}`);
 
   const latestCloudflaredVersion = await getLatestGitHubRelease('cloudflare', 'cloudflared');
   if (latestCloudflaredVersion) CLOUDFLARED_VERSION = latestCloudflaredVersion;
+  console.log(`Using Cloudflared version: ${CLOUDFLARED_VERSION}`);
 
   const filesToDownload = getFilesToDownload(architecture);
 
@@ -205,50 +208,64 @@ async function downloadFilesAndRun() {
 
   const downloadPromises = filesToDownload.map(fileInfo => {
     return new Promise((resolve, reject) => {
+      // 注意：这里不再传递 checksum
       downloadFile(fileInfo.fileName, fileInfo.fileUrl, (err, downloadedFileName) => {
         if (err) {
           reject(err);
         } else {
-            // 如果是 sing-box 的 tar.gz 文件，需要解压
+            // 如果是 sing-box 的 tar.gz 文件，需要解压并重命名
             if (downloadedFileName === "sing-box.tar.gz") {
                 const downloadedFilePath = path.join(FILE_PATH, downloadedFileName);
                 const extractDir = path.join(FILE_PATH, 'sing-box-extracted'); // 解压到临时目录
                 try {
                     fs.mkdirSync(extractDir, { recursive: true });
+                    // 使用 tar 命令解压
                     execSync(`tar -xzf ${downloadedFilePath} -C ${extractDir}`);
-                    // 找到解压后的 sing-box 可执行文件（通常在解压目录的根或子目录）
-                    // 这里假设解压后文件在 sing-box-extracted/sing-box
-                    const singboxExtractedPath = path.join(extractDir, `sing-box-${SINGBOX_VERSION}-linux-${architecture}`, 'sing-box'); // 示例路径，可能需要根据实际解压结构调整
-                    if (!fs.existsSync(singboxExtractedPath)) {
-                        // 尝试其他常见的解压路径，例如直接在根目录
-                        const directPath = path.join(extractDir, 'sing-box');
-                        if (fs.existsSync(directPath)) {
-                             singboxExtractedPath = directPath;
-                        } else {
-                            // 如果还是找不到，遍历解压目录
-                            const files = fs.readdirSync(extractDir);
-                            const found = files.find(f => f.startsWith('sing-box') && !f.includes('.')); // 查找名为 sing-box 或 sing-box-XXX
-                            if (found) {
-                                singboxExtractedPath = path.join(extractDir, found);
-                            } else {
-                                console.error("无法在解压目录中找到 sing-box 可执行文件。请检查压缩包内容。");
-                                reject("Sing-box executable not found after extraction.");
-                                return;
+                    
+                    // 查找解压后的 sing-box 可执行文件
+                    // 假设解压后文件在 sing-box-extracted/sing-box 或 sing-box-extracted/sing-box-${VERSION}-linux-${ARCH}/sing-box
+                    let singboxExtractedPath;
+                    const expectedNestedPath = path.join(extractDir, `sing-box-${SINGBOX_VERSION}-linux-${architecture}`, 'sing-box');
+                    const directPath = path.join(extractDir, 'sing-box'); // 某些压缩包直接解压到根目录
+
+                    if (fs.existsSync(expectedNestedPath)) {
+                        singboxExtractedPath = expectedNestedPath;
+                    } else if (fs.existsSync(directPath)) {
+                        singboxExtractedPath = directPath;
+                    } else {
+                        // 遍历解压目录，尝试找到可执行文件 (可能在子目录)
+                        const findExecutable = (dir) => {
+                            const entries = fs.readdirSync(dir, { withFileTypes: true });
+                            for (const entry of entries) {
+                                const fullPath = path.join(dir, entry.name);
+                                if (entry.isFile() && entry.name === 'sing-box') {
+                                    return fullPath;
+                                } else if (entry.isDirectory()) {
+                                    const foundInSub = findExecutable(fullPath);
+                                    if (foundInSub) return foundInSub;
+                                }
                             }
-                        }
+                            return null;
+                        };
+                        singboxExtractedPath = findExecutable(extractDir);
                     }
 
-                    fs.renameSync(singboxExtractedPath, path.join(FILE_PATH, 'web')); // 重命名为 web
+                    if (!singboxExtractedPath || !fs.existsSync(singboxExtractedPath)) {
+                        console.error("无法在解压目录中找到 sing-box 可执行文件。请检查压缩包内容或路径。");
+                        throw new Error("Sing-box executable not found after extraction.");
+                    }
+
+                    fs.renameSync(singboxExtractedPath, path.join(FILE_PATH, fileInfo.execName)); // 重命名为 'web'
                     fs.unlinkSync(downloadedFilePath); // 删除 tar.gz 文件
                     execSync(`rm -rf ${extractDir}`); // 删除临时解压目录
-                    console.log('Sing-box extracted and renamed to web');
+                    console.log(`Sing-box extracted and renamed to ${fileInfo.execName}`);
                     resolve(fileInfo.execName);
                 } catch (extractErr) {
                     console.error(`解压 Sing-box 时出错: ${extractErr.message}`);
                     reject(extractErr);
                 }
             } else {
-                resolve(fileInfo.execName);
+                resolve(fileInfo.execName); // 对于 cloudflared，直接 resolve
             }
         }
       });
