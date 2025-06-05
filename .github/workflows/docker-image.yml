@@ -1,18 +1,44 @@
-name: Docker Image CI
+name: Build and Push to GHCR
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main  # 触发分支
 
 jobs:
-
-  build:
-
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag sbx:$(date +%s)
+    # 1. 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. 设置 Node.js 环境
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # 根据你的需求调整版本
+
+    # 3. 安装依赖
+    - name: Install dependencies
+      run: npm install
+
+    # 4. 运行测试（可选）
+    - name: Run tests
+      run: npm test
+
+    # 5. 构建 Docker 镜像
+    - name: Build Docker image
+      run: |
+        docker build -t ghcr.io/Mpacali/node-argo:latest .
+
+    # 6. 登录 GHCR
+    - name: Log in to GHCR
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    # 7. 推送 Docker 镜像
+    - name: Push Docker image
+      run: |
+        docker push ghcr.io/Mpacali/node-argo:latest
