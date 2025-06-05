@@ -29,7 +29,7 @@ jobs:
     # 5. 构建 Docker 镜像
     - name: Build Docker image
       run: |
-        docker build -t ghcr.io/Mpacali/node-argo:latest .
+        docker build -t node-argo:latest .
 
     # 6. 登录 GHCR
     - name: Log in to GHCR
