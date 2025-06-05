@@ -39,4 +39,4 @@ jobs:
     # 7. 推送 Docker 镜像
     - name: Push Docker image
       run: |
-        docker push node-argo:latest
+        docker push ghcr.io/mpacali/node-argo:latest
