@@ -1,20 +1,25 @@
 {
-  "name": "nodejs-argo",
-  "version": "8.8.8",
-  "description": "Thsi is a node project",
+  "name": "singbox-cloudflared-node",
+  "version": "1.0.0",
+  "description": "A Node.js script to deploy sing-box and cloudflared for Vless/Vmess/Trojan nodes with Cloudflare Tunnel.",
   "main": "index.js",
-  "author": "pmaa",
-  "repository": "https://github.com/Mpacali/nodejs-argo",
-  "license": "MIT",
-  "private": false,
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [
+    "sing-box",
+    "cloudflared",
+    "cloudflare-tunnel",
+    "vless",
+    "vmess",
+    "trojan",
+    "node.js",
+    "proxy"
+  ],
+  "author": "aaa",
+  "license": "MIT",
   "dependencies": {
-    "axios": "latest",
-    "express": "^4.18.2"
-  },
-  "engines": {
-    "node": ">=14"
+    "axios": "^1.7.2",
+    "express": "^4.19.2"
   }
 }
