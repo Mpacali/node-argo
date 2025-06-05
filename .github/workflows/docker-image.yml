@@ -36,7 +36,3 @@ jobs:
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-    # 7. 推送 Docker 镜像
-    - name: Push Docker image
-      run: |
-        docker push library/node-argo:latest
